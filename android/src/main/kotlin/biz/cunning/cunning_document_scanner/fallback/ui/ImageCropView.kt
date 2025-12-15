@@ -276,27 +276,94 @@ class ImageCropView(context: Context, attrs: AttributeSet) : AppCompatImageView(
                     quad!!.corners[closestCornerToTouch]!!.y + touchMoveYDistance
                 )
 
-                // make sure the user doesn't drag the corner outside the image preview container
-                if (isPointInsideImage(cornerNewPosition)) {
-                    quad!!.moveCorner(closestCornerToTouch!!, touchMoveXDistance, touchMoveYDistance)
+                // Minimum crop size in pixels
+                val minSize = 60f
+                
+                // Current dimensions
+                val currentWidth = quad!!.corners[QuadCorner.TOP_RIGHT]!!.x - quad!!.corners[QuadCorner.TOP_LEFT]!!.x
+                val currentHeight = quad!!.corners[QuadCorner.BOTTOM_LEFT]!!.y - quad!!.corners[QuadCorner.TOP_LEFT]!!.y
+                
+                // Clamp translation to prevent crossing (min size constraint)
+                var dx = touchMoveXDistance
+                var dy = touchMoveYDistance
+
+                when (closestCornerToTouch) {
+                    QuadCorner.TOP_LEFT -> {
+                        // Moving right reduces width: limit max dx
+                        if (dx > currentWidth - minSize) dx = currentWidth - minSize
+                        // Moving down reduces height: limit max dy
+                        if (dy > currentHeight - minSize) dy = currentHeight - minSize
+                    }
+                    QuadCorner.TOP_RIGHT -> {
+                         // Moving left reduces width: limit min dx (negative)
+                        if (dx < -(currentWidth - minSize)) dx = -(currentWidth - minSize)
+                        // Moving down reduces height
+                        if (dy > currentHeight - minSize) dy = currentHeight - minSize
+                    }
+                    QuadCorner.BOTTOM_RIGHT -> {
+                         // Moving left reduces width
+                        if (dx < -(currentWidth - minSize)) dx = -(currentWidth - minSize)
+                        // Moving up reduces height
+                        if (dy < -(currentHeight - minSize)) dy = -(currentHeight - minSize)
+                    }
+                    QuadCorner.BOTTOM_LEFT -> {
+                         // Moving right reduces width
+                        if (dx > currentWidth - minSize) dx = currentWidth - minSize
+                         // Moving up reduces height
+                         if (dy < -(currentHeight - minSize)) dy = -(currentHeight - minSize)
+                    }
+                    else -> {}
+                }
+
+                // Check bounds for ALL moving corners
+                val canMove: Boolean = when (closestCornerToTouch) {
+                    QuadCorner.TOP_LEFT -> {
+                        val newTL = PointF(quad!!.corners[QuadCorner.TOP_LEFT]!!.x + dx, quad!!.corners[QuadCorner.TOP_LEFT]!!.y + dy)
+                        val newTR = PointF(quad!!.corners[QuadCorner.TOP_RIGHT]!!.x, quad!!.corners[QuadCorner.TOP_RIGHT]!!.y + dy)
+                        val newBL = PointF(quad!!.corners[QuadCorner.BOTTOM_LEFT]!!.x + dx, quad!!.corners[QuadCorner.BOTTOM_LEFT]!!.y)
+                        isPointInsideImage(newTL) && isPointInsideImage(newTR) && isPointInsideImage(newBL)
+                    }
+                    QuadCorner.TOP_RIGHT -> {
+                        val newTR = PointF(quad!!.corners[QuadCorner.TOP_RIGHT]!!.x + dx, quad!!.corners[QuadCorner.TOP_RIGHT]!!.y + dy)
+                        val newTL = PointF(quad!!.corners[QuadCorner.TOP_LEFT]!!.x, quad!!.corners[QuadCorner.TOP_LEFT]!!.y + dy)
+                        val newBR = PointF(quad!!.corners[QuadCorner.BOTTOM_RIGHT]!!.x + dx, quad!!.corners[QuadCorner.BOTTOM_RIGHT]!!.y)
+                        isPointInsideImage(newTR) && isPointInsideImage(newTL) && isPointInsideImage(newBR)
+                    }
+                    QuadCorner.BOTTOM_RIGHT -> {
+                        val newBR = PointF(quad!!.corners[QuadCorner.BOTTOM_RIGHT]!!.x + dx, quad!!.corners[QuadCorner.BOTTOM_RIGHT]!!.y + dy)
+                        val newBL = PointF(quad!!.corners[QuadCorner.BOTTOM_LEFT]!!.x, quad!!.corners[QuadCorner.BOTTOM_LEFT]!!.y + dy)
+                        val newTR = PointF(quad!!.corners[QuadCorner.TOP_RIGHT]!!.x + dx, quad!!.corners[QuadCorner.TOP_RIGHT]!!.y)
+                        isPointInsideImage(newBR) && isPointInsideImage(newBL) && isPointInsideImage(newTR)
+                    }
+                    QuadCorner.BOTTOM_LEFT -> {
+                        val newBL = PointF(quad!!.corners[QuadCorner.BOTTOM_LEFT]!!.x + dx, quad!!.corners[QuadCorner.BOTTOM_LEFT]!!.y + dy)
+                        val newBR = PointF(quad!!.corners[QuadCorner.BOTTOM_RIGHT]!!.x, quad!!.corners[QuadCorner.BOTTOM_RIGHT]!!.y + dy)
+                        val newTL = PointF(quad!!.corners[QuadCorner.TOP_LEFT]!!.x + dx, quad!!.corners[QuadCorner.TOP_LEFT]!!.y)
+                        isPointInsideImage(newBL) && isPointInsideImage(newBR) && isPointInsideImage(newTL)
+                    }
+                    else -> false
+                }
+
+                if (canMove) {
+                    quad!!.moveCorner(closestCornerToTouch!!, dx, dy)
 
                     // Update adjacent corners to maintain rectangle
                     when (closestCornerToTouch) {
                         QuadCorner.TOP_LEFT -> {
-                            quad!!.moveCorner(QuadCorner.TOP_RIGHT, 0f, touchMoveYDistance)
-                            quad!!.moveCorner(QuadCorner.BOTTOM_LEFT, touchMoveXDistance, 0f)
+                            quad!!.moveCorner(QuadCorner.TOP_RIGHT, 0f, dy)
+                            quad!!.moveCorner(QuadCorner.BOTTOM_LEFT, dx, 0f)
                         }
                         QuadCorner.TOP_RIGHT -> {
-                            quad!!.moveCorner(QuadCorner.TOP_LEFT, 0f, touchMoveYDistance)
-                            quad!!.moveCorner(QuadCorner.BOTTOM_RIGHT, touchMoveXDistance, 0f)
+                            quad!!.moveCorner(QuadCorner.TOP_LEFT, 0f, dy)
+                            quad!!.moveCorner(QuadCorner.BOTTOM_RIGHT, dx, 0f)
                         }
                         QuadCorner.BOTTOM_RIGHT -> {
-                            quad!!.moveCorner(QuadCorner.BOTTOM_LEFT, 0f, touchMoveYDistance)
-                            quad!!.moveCorner(QuadCorner.TOP_RIGHT, touchMoveXDistance, 0f)
+                            quad!!.moveCorner(QuadCorner.BOTTOM_LEFT, 0f, dy)
+                            quad!!.moveCorner(QuadCorner.TOP_RIGHT, dx, 0f)
                         }
                         QuadCorner.BOTTOM_LEFT -> {
-                            quad!!.moveCorner(QuadCorner.BOTTOM_RIGHT, 0f, touchMoveYDistance)
-                            quad!!.moveCorner(QuadCorner.TOP_LEFT, touchMoveXDistance, 0f)
+                            quad!!.moveCorner(QuadCorner.BOTTOM_RIGHT, 0f, dy)
+                            quad!!.moveCorner(QuadCorner.TOP_LEFT, dx, 0f)
                         }
                         else -> {}
                     }
