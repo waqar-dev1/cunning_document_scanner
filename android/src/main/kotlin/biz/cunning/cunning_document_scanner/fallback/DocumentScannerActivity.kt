@@ -160,6 +160,7 @@ class DocumentScannerActivity : AppCompatActivity() {
         // retake photo button. Since we open the camera in a few lines, the user
         // doesn't see this until they finish taking a photo
         setContentView(R.layout.activity_image_crop)
+        window.statusBarColor = resources.getColor(R.color.darkBlue)
         imageView = findViewById(R.id.image_view)
 
         try {
@@ -225,23 +226,27 @@ class DocumentScannerActivity : AppCompatActivity() {
     private fun getDocumentCorners(photo: Bitmap): List<Point> {
         val cornerPoints: List<Point>? = null
 
+        // Calculate margin based on 5% of dimensions
+        val marginX = photo.width * 0.05
+        val marginY = photo.height * 0.05
+
         // if cornerPoints is null then default the corners to the photo bounds with a margin
         return cornerPoints ?: listOf(
             Point(0.0, 0.0).move(
-                cropperOffsetWhenCornersNotFound,
-                cropperOffsetWhenCornersNotFound
+                marginX,
+                marginY
             ),
             Point(photo.width.toDouble(), 0.0).move(
-                -cropperOffsetWhenCornersNotFound,
-                cropperOffsetWhenCornersNotFound
+                -marginX,
+                marginY
             ),
             Point(0.0, photo.height.toDouble()).move(
-                cropperOffsetWhenCornersNotFound,
-                -cropperOffsetWhenCornersNotFound
+                marginX,
+                -marginY
             ),
             Point(photo.width.toDouble(), photo.height.toDouble()).move(
-                -cropperOffsetWhenCornersNotFound,
-                -cropperOffsetWhenCornersNotFound
+                -marginX,
+                -marginY
             )
         )
     }

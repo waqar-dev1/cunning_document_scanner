@@ -89,7 +89,7 @@ class ImageCropView(context: Context, attrs: AttributeSet) : AppCompatImageView(
 
     init {
         // set cropper style
-        cropperLinesAndCornersStyles.color = Color.WHITE
+        cropperLinesAndCornersStyles.color = context.resources.getColor(R.color.panelYellow)
         cropperLinesAndCornersStyles.style = Paint.Style.STROKE
         cropperLinesAndCornersStyles.strokeWidth = 3f
     }
@@ -279,6 +279,27 @@ class ImageCropView(context: Context, attrs: AttributeSet) : AppCompatImageView(
                 // make sure the user doesn't drag the corner outside the image preview container
                 if (isPointInsideImage(cornerNewPosition)) {
                     quad!!.moveCorner(closestCornerToTouch!!, touchMoveXDistance, touchMoveYDistance)
+
+                    // Update adjacent corners to maintain rectangle
+                    when (closestCornerToTouch) {
+                        QuadCorner.TOP_LEFT -> {
+                            quad!!.moveCorner(QuadCorner.TOP_RIGHT, 0f, touchMoveYDistance)
+                            quad!!.moveCorner(QuadCorner.BOTTOM_LEFT, touchMoveXDistance, 0f)
+                        }
+                        QuadCorner.TOP_RIGHT -> {
+                            quad!!.moveCorner(QuadCorner.TOP_LEFT, 0f, touchMoveYDistance)
+                            quad!!.moveCorner(QuadCorner.BOTTOM_RIGHT, touchMoveXDistance, 0f)
+                        }
+                        QuadCorner.BOTTOM_RIGHT -> {
+                            quad!!.moveCorner(QuadCorner.BOTTOM_LEFT, 0f, touchMoveYDistance)
+                            quad!!.moveCorner(QuadCorner.TOP_RIGHT, touchMoveXDistance, 0f)
+                        }
+                        QuadCorner.BOTTOM_LEFT -> {
+                            quad!!.moveCorner(QuadCorner.BOTTOM_RIGHT, 0f, touchMoveYDistance)
+                            quad!!.moveCorner(QuadCorner.TOP_LEFT, touchMoveXDistance, 0f)
+                        }
+                        else -> {}
+                    }
                 }
 
                 // record the point touched, so we can use it to calculate how far to move corner
