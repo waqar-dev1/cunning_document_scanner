@@ -24,6 +24,13 @@ import biz.cunning.cunning_document_scanner.fallback.utils.CameraUtil
 import biz.cunning.cunning_document_scanner.fallback.utils.FileUtil
 import biz.cunning.cunning_document_scanner.fallback.utils.ImageUtil
 import java.io.File
+import org.opencv.android.OpenCVLoader
+import org.opencv.android.Utils
+import org.opencv.core.Mat
+import org.opencv.core.MatOfPoint
+import org.opencv.core.MatOfPoint2f
+import org.opencv.imgproc.Imgproc
+
 /**
  * This class contains the main document scanner code. It opens the camera, lets the user
  * take a photo of a document (homework paper, business card, etc.), detects document corners,
@@ -156,6 +163,11 @@ class DocumentScannerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (!OpenCVLoader.initDebug()) {
+             finishIntentWithError("Unable to initialize OpenCV")
+             return
+        }
+
         // Show cropper, accept crop button, add new document button, and
         // retake photo button. Since we open the camera in a few lines, the user
         // doesn't see this until they finish taking a photo
@@ -224,7 +236,70 @@ class DocumentScannerActivity : AppCompatActivity() {
      * @return a List of 4 OpenCV points (document corners)
      */
     private fun getDocumentCorners(photo: Bitmap): List<Point> {
-        val cornerPoints: List<Point>? = null
+        val cornerPoints: List<Point>? = try {
+            val src = Mat()
+            Utils.bitmapToMat(photo, src)
+
+            val gray = Mat()
+            Imgproc.cvtColor(src, gray, Imgproc.COLOR_BGR2GRAY)
+
+            val blurred = Mat()
+            Imgproc.GaussianBlur(gray, blurred, org.opencv.core.Size(5.0, 5.0), 0.0)
+
+            val edges = Mat()
+            Imgproc.Canny(blurred, edges, 75.0, 200.0)
+
+            val contours = ArrayList<MatOfPoint>()
+            val hierarchy = Mat()
+            Imgproc.findContours(
+                edges,
+                contours,
+                hierarchy,
+                Imgproc.RETR_LIST,
+                Imgproc.CHAIN_APPROX_SIMPLE
+            )
+
+            var largestContour: MatOfPoint? = null
+            var maxArea = 0.0
+
+            for (contour in contours) {
+                val area = Imgproc.contourArea(contour)
+                if (area > maxArea) {
+                    val peri = Imgproc.arcLength(MatOfPoint2f(*contour.toArray()), true)
+                    val approx = MatOfPoint2f()
+                    Imgproc.approxPolyDP(
+                        MatOfPoint2f(*contour.toArray()),
+                        approx,
+                        0.02 * peri,
+                        true
+                    )
+
+                    if (approx.toArray().size == 4) {
+                        largestContour = contour
+                        maxArea = area
+                    }
+                }
+            }
+
+            if (largestContour != null) {
+                val peri = Imgproc.arcLength(MatOfPoint2f(*largestContour.toArray()), true)
+                val approx = MatOfPoint2f()
+                Imgproc.approxPolyDP(
+                    MatOfPoint2f(*largestContour.toArray()),
+                    approx,
+                    0.02 * peri,
+                    true
+                )
+
+                val points = approx.toArray().map { Point(it.x, it.y) }
+                sortPoints(points)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
 
         // Calculate margin based on 5% of dimensions
         val marginX = photo.width * 0.05
@@ -249,6 +324,15 @@ class DocumentScannerActivity : AppCompatActivity() {
                 -marginY
             )
         )
+    }
+
+    private fun sortPoints(points: List<Point>): List<Point> {
+        // Sort by Y to separate top and bottom
+        val sortedByY = points.sortedBy { it.y }
+        val topPoints = sortedByY.take(2).sortedBy { it.x }
+        val bottomPoints = sortedByY.takeLast(2).sortedBy { it.x }
+
+        return listOf(topPoints[0], topPoints[1], bottomPoints[1], bottomPoints[0])
     }
 
     /**

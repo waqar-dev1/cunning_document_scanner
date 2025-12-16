@@ -34,7 +34,7 @@ class DoneButton(
 
     init {
         // set outer ring style
-        ring.color = Color.WHITE
+        ring.color = ContextCompat.getColor(context, R.color.panelYellow)
         ring.style = Paint.Style.STROKE
         ring.strokeWidth = resources.getDimension(R.dimen.large_button_ring_thickness)
 

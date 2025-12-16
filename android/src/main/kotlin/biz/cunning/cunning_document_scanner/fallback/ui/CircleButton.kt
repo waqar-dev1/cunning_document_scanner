@@ -1,4 +1,5 @@
 package biz.cunning.cunning_document_scanner.fallback.ui
+import androidx.core.content.ContextCompat
 
 import android.content.Context
 import android.graphics.Canvas
@@ -27,7 +28,8 @@ class CircleButton(
 
     init {
         // set outer ring style
-        ring.color = Color.WHITE
+        //ring.color = context.getColor(R.color.panelYellow);
+        ring.color = ContextCompat.getColor(context, R.color.panelYellow)
         ring.style = Paint.Style.STROKE
         ring.strokeWidth = resources.getDimension(R.dimen.small_button_ring_thickness)
     }

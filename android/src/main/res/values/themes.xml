@@ -4,5 +4,10 @@
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:layout_width">fill_parent</item>
         <item name="android:layout_height">fill_parent</item>
+
+        <!-- Theme colors -->
+        <item name="colorPrimary">@color/panelYellow</item>
+        <item name="colorPrimaryDark">@color/darkBlue</item>
+        <item name="colorAccent">@color/panelYellow</item>
     </style>
 </resources>
