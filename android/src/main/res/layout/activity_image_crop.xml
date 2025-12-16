@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black"
+    android:background="@color/darkBlue"
     android:paddingVertical="@dimen/image_crop_view_vertical_padding"
     tools:context=".fallback.DocumentScannerActivity">
 
